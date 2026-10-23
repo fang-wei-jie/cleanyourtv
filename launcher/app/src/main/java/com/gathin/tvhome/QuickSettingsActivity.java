@@ -33,6 +33,10 @@ public final class QuickSettingsActivity extends Activity {
             Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS};
 
     static final String ORDER_KEY = "quick_order";
+    /** Opened from Home (MainActivity.quickPanel()): add the Home rows, which Home itself runs. */
+    static final String EXTRA_HOME = "home", EXTRA_MODULE_CARDS = "module_cards", EXTRA_DOCK_ROW = "dock_row";
+    /** Sent back to Home with ACTION_LAUNCHER_SETTINGS: module_cards, dock_edit or reorder. */
+    static final String EXTRA_HOME_ROW = "home_row";
 
     static boolean shows(SharedPreferences choices, int row) {
         return choices.getBoolean(ROW_KEYS[row], ROW_DEFAULTS[row]);
@@ -70,10 +74,20 @@ public final class QuickSettingsActivity extends Activity {
                 addRow(rows, ROW_ICONS[i], ROW_TITLES[i], ROW_HINTS[i], SystemSettings.intent(this, ROW_ACTIONS[i]));
             }
         }
+        Intent from = getIntent();
+        if (from.getBooleanExtra(EXTRA_HOME, false)) {
+            if (from.getBooleanExtra(EXTRA_MODULE_CARDS, false)) addRow(rows, R.drawable.ic_module_cards, R.string.module_cards, 0, homeRow("module_cards"));
+            if (from.getBooleanExtra(EXTRA_DOCK_ROW, false)) addRow(rows, R.drawable.ic_dock_edit, R.string.dock_edit, 0, homeRow("dock_edit"));
+            addRow(rows, R.drawable.ic_reorder, R.string.reorder, 0, homeRow("reorder"));
+        }
         // Through Home, so it rebuilds with the new choices when Launcher settings closes.
         addRow(rows, R.drawable.ic_home_settings, R.string.launcher_settings, 0,
                 new Intent(this, MainActivity.class).setAction(MainActivity.ACTION_LAUNCHER_SETTINGS));
         rows.getChildAt(0).requestFocus();
+    }
+
+    private Intent homeRow(String row) {
+        return new Intent(this, MainActivity.class).setAction(MainActivity.ACTION_LAUNCHER_SETTINGS).putExtra(EXTRA_HOME_ROW, row);
     }
 
     /** Settings pressed again while the panel is up. */

@@ -658,7 +658,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             makeIconOnly((TextView) btnSettings);
         }
         btnSettings.setOnLongClickListener(v -> {
-            showSettingsMenu();
+            // settings_key_panel: the same panel as the remote's Settings button, so there is one menu.
+            if (settingsKeyPanel) open(quickPanel());
+            else showSettingsMenu();
             return true;
         });
 
@@ -778,6 +780,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean openLauncherSettingsIfAsked(Intent intent) {
         if (intent == null || !ACTION_LAUNCHER_SETTINGS.equals(intent.getAction())) return false;
         setIntent(new Intent(Intent.ACTION_MAIN));
+        // The quick panel's Home rows (QuickSettingsActivity.EXTRA_HOME_ROW): run here once the panel has gone.
+        String row = intent.getStringExtra(QuickSettingsActivity.EXTRA_HOME_ROW);
+        if (row != null) {
+            Runnable action = "module_cards".equals(row) ? this::showModuleCards
+                    : "dock_edit".equals(row) ? this::startDockEdit : this::toggleReorder;
+            root.post(action);
+            return true;
+        }
         startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
         return true;
     }
@@ -1118,8 +1128,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (int code : settingsKeycodes) {
             if (event.getKeyCode() != code) continue;
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
-                open(settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class)
-                        : systemIntent(Settings.ACTION_SETTINGS));
+                open(settingsKeyPanel ? quickPanel() : systemIntent(Settings.ACTION_SETTINGS));
             }
             return true;
         }
@@ -2999,6 +3008,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.setWidth(Math.max((int) (220 * density), Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
         dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END);
         rows.getChildAt(0).requestFocus();
+    }
+
+    /** The quick panel, with the Home rows showSettingsMenu() has, since Home opened it. */
+    private Intent quickPanel() {
+        return new Intent(this, QuickSettingsActivity.class)
+                .putExtra(QuickSettingsActivity.EXTRA_HOME, true)
+                .putExtra(QuickSettingsActivity.EXTRA_MODULE_CARDS, moduleCards)
+                .putExtra(QuickSettingsActivity.EXTRA_DOCK_ROW, dockRow);
     }
 
     /** The header opens launcher settings directly; hold OK keeps the extra home actions available. */
