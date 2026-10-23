@@ -9,6 +9,9 @@
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- bluetooth_pill only: the connected audio device's name. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
          runtime: build-and-install grants it with pm grant, so lint's Android 12 "ask for COARSE with
          FINE" rule does not apply here. -->
@@ -25,6 +28,8 @@
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
     <queries>
+        <!-- TCL's AirPlay receiver, for the Inputs menu's AirPlay row. -->
+        <package android:name="com.tcl.airplay2" />
         <!-- The standard settings handlers, so package visibility doesn't hide them and send the pills to a vendor fallback by mistake. -->
         <intent>
             <action android:name="android.settings.SETTINGS" />

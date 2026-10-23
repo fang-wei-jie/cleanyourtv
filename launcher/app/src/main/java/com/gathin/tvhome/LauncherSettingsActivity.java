@@ -27,6 +27,7 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
+    private final TextView[] quickChoices = new TextView[QuickSettingsActivity.ROW_KEYS.length];
     private int columns;
     private int rowsBelowDock;
     private int dockOpacity;
@@ -139,6 +140,22 @@ public final class LauncherSettingsActivity extends Activity {
         });
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
+        LinearLayout quickRows = findViewById(R.id.quickPanelRows);
+        // The views are positions in the panel: OK switches the row shown there, holding OK moves it.
+        for (int i = 0; i < QuickSettingsActivity.ROW_KEYS.length; i++) {
+            final int position = i;
+            quickChoices[i] = (TextView) quickRows.getChildAt(i);
+            quickChoices[i].setOnClickListener(v -> {
+                int row = QuickSettingsActivity.order(choices)[position];
+                choices.edit().putBoolean(QuickSettingsActivity.ROW_KEYS[row],
+                        !QuickSettingsActivity.shows(choices, row)).apply();
+                refresh();
+            });
+            quickChoices[i].setOnLongClickListener(v -> {
+                showQuickMove(position);
+                return true;
+            });
+        }
         refresh();
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
         else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
@@ -186,6 +203,25 @@ public final class LauncherSettingsActivity extends Activity {
                 .show();
     }
 
+    private void showQuickMove(int position) {
+        int[] order = QuickSettingsActivity.order(choices);
+        String[] moves = {getString(R.string.move_up), getString(R.string.move_down)};
+        new AlertDialog.Builder(this)
+                .setTitle(QuickSettingsActivity.ROW_TITLES[order[position]])
+                .setItems(moves, (dialog, which) -> {
+                    int target = which == 0 ? position - 1 : position + 1;
+                    if (target < 0 || target >= order.length) return;
+                    int moved = order[position];
+                    order[position] = order[target];
+                    order[target] = moved;
+                    QuickSettingsActivity.saveOrder(choices, order);
+                    refresh();
+                    quickChoices[target].requestFocus();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
     private static int indexOf(List<File> images, String name) {
         if (name == null) return -1;
         for (int i = 0; i < images.size(); i++) {
@@ -223,6 +259,12 @@ public final class LauncherSettingsActivity extends Activity {
                         : wallpaperCurrent != null ? wallpaperCurrent
                         : getString(R.string.wallpaper_theme_default)));
         followThemeChoice.setSelected(!hasOnTvChoices());
+        int[] order = QuickSettingsActivity.order(choices);
+        for (int i = 0; i < quickChoices.length; i++) {
+            quickChoices[i].setText(getString(R.string.quick_row_state,
+                    getString(QuickSettingsActivity.ROW_TITLES[order[i]]),
+                    getString(QuickSettingsActivity.shows(choices, order[i]) ? R.string.on : R.string.off)));
+        }
     }
 
     private boolean hasOnTvChoices() {

@@ -1,0 +1,9 @@
+{
+  "tile_menu": true,
+  "app_library": true,
+  "settings_key_keycodes": [
+    83
+  ],
+  "settings_key_panel": true,
+  "bluetooth_pill": true
+}

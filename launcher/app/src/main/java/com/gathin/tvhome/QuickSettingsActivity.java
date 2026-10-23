@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
@@ -18,6 +19,44 @@ import android.widget.Toast;
  * closes the panel.
  */
 public final class QuickSettingsActivity extends Activity {
+    /** The rows Launcher settings can switch on and off, in panel order; Launcher settings itself always shows. */
+    static final String[] ROW_KEYS = {"quick_tv_settings", "quick_display", "quick_network", "quick_bluetooth", "quick_apps"};
+    static final int[] ROW_TITLES = {R.string.tv_settings, R.string.quick_picture, R.string.quick_network,
+            R.string.quick_bluetooth, R.string.quick_apps};
+    static final boolean[] ROW_DEFAULTS = {true, false, false, true, true};
+    private static final int[] ROW_ICONS = {R.drawable.ic_settings, R.drawable.ic_picture, R.drawable.ic_ethernet,
+            R.drawable.ic_bluetooth, R.drawable.ic_apps};
+    private static final int[] ROW_HINTS = {0, 0, 0, 0, R.string.quick_apps_hint};
+    // TV Settings answers its own action, not Settings.ACTION_BLUETOOTH_SETTINGS (TCL G09: "Remotes & Accessories").
+    private static final String[] ROW_ACTIONS = {Settings.ACTION_SETTINGS, Settings.ACTION_DISPLAY_SETTINGS,
+            Settings.ACTION_WIFI_SETTINGS, BluetoothPill.ACCESSORIES,
+            Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS};
+
+    static final String ORDER_KEY = "quick_order";
+
+    static boolean shows(SharedPreferences choices, int row) {
+        return choices.getBoolean(ROW_KEYS[row], ROW_DEFAULTS[row]);
+    }
+
+    /** The rows in the order chosen in Launcher settings, as indexes into ROW_KEYS; rows missing from the
+     *  saved order (one added in a later build) follow in their built-in order. */
+    static int[] order(SharedPreferences choices) {
+        java.util.List<Integer> rows = new java.util.ArrayList<>();
+        for (String key : choices.getString(ORDER_KEY, "").split(",")) {
+            int i = java.util.Arrays.asList(ROW_KEYS).indexOf(key);
+            if (i >= 0 && !rows.contains(i)) rows.add(i);
+        }
+        for (int i = 0; i < ROW_KEYS.length; i++) if (!rows.contains(i)) rows.add(i);
+        int[] out = new int[rows.size()];
+        for (int i = 0; i < out.length; i++) out[i] = rows.get(i);
+        return out;
+    }
+
+    static void saveOrder(SharedPreferences choices, int[] order) {
+        StringBuilder keys = new StringBuilder();
+        for (int i : order) keys.append(keys.length() == 0 ? "" : ",").append(ROW_KEYS[i]);
+        choices.edit().putString(ORDER_KEY, keys.toString()).apply();
+    }
 
     @Override
     protected void onCreate(Bundle state) {
@@ -25,11 +64,12 @@ public final class QuickSettingsActivity extends Activity {
         setContentView(R.layout.activity_quick_settings);
         findViewById(R.id.scrim).setOnClickListener(v -> finish());
         LinearLayout rows = findViewById(R.id.rows);
-        addRow(rows, R.drawable.ic_settings, R.string.tv_settings, 0, SystemSettings.intent(this, Settings.ACTION_SETTINGS));
-        addRow(rows, R.drawable.ic_picture, R.string.quick_picture, 0, SystemSettings.intent(this, Settings.ACTION_DISPLAY_SETTINGS));
-        addRow(rows, R.drawable.ic_wifi, R.string.quick_network, 0, SystemSettings.intent(this, Settings.ACTION_WIFI_SETTINGS));
-        addRow(rows, R.drawable.ic_apps, R.string.quick_apps, R.string.quick_apps_hint,
-                SystemSettings.intent(this, Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
+        SharedPreferences choices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        for (int i : order(choices)) {
+            if (shows(choices, i)) {
+                addRow(rows, ROW_ICONS[i], ROW_TITLES[i], ROW_HINTS[i], SystemSettings.intent(this, ROW_ACTIONS[i]));
+            }
+        }
         // Through Home, so it rebuilds with the new choices when Launcher settings closes.
         addRow(rows, R.drawable.ic_home_settings, R.string.launcher_settings, 0,
                 new Intent(this, MainActivity.class).setAction(MainActivity.ACTION_LAUNCHER_SETTINGS));

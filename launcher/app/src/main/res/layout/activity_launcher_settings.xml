@@ -144,5 +144,35 @@
             style="@style/SettingsRow"
             android:layout_marginTop="18dp"
             android:text="@string/tv_settings" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="@string/quick_panel_label"
+            android:textColor="#FFFFFFFF"
+            android:textSize="20sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:text="@string/quick_panel_hint"
+            android:textColor="#FFACB8C1"
+            android:textSize="14sp" />
+
+        <!-- One row per QuickSettingsActivity.ROW_KEYS entry, in the same order. -->
+        <LinearLayout
+            android:id="@+id/quickPanelRows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
+            <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
+            <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
+            <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
+            <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

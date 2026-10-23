@@ -141,6 +141,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** config.xml ambient_glow, overridable by a theme. Off: the glow view is gone and no fade or colour animator
      *  is started for it, so a focus move costs nothing extra on a launcher that runs all day. */
     private boolean ambientGlow;
+    /** config inputs_connected_only: the Inputs menu leaves out what the TV does not report as connected. */
+    private boolean inputsConnectedOnly;
     /** config.xml app_glow: the highlight takes the focused app's colour on every tile. */
     private boolean appGlow;
     /** config.xml glow_style: the shape setAmbient paints the glow mask in. */
@@ -164,6 +166,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
     private TextView btnWifi;
+    /** config bluetooth_pill: drives btnWifi instead of the network label. */
+    private BluetoothPill bluetoothPill;
     /** The network pill's icon as last set, so a refresh that changes nothing does not lay the top bar out again. */
     private int wifiIcon;
     /** The pills have been filled in once; later resumes refresh them after the first frame. */
@@ -289,6 +293,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void onInputRemoved(String inputId) {
             updateInputsButton();
         }
+
+        @Override
+        public void onInputStateChanged(String inputId, int state) {
+            // inputs_single_direct: plugging in or unplugging HDMI changes how many rows the menu has.
+            if (inputsSingleDirect) updateInputsButton();
+        }
     };
     /** Listens for any VPN coming up or going down, even one this app's traffic is excluded from. */
     private final ConnectivityManager.NetworkCallback vpnCallback = new ConnectivityManager.NetworkCallback() {
@@ -313,6 +323,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (!tileRefresh.onPackagesChanged()) return;
             reloadApps(false);
             if (appLibrary != null) appLibrary.refresh();
+        }
+    };
+    /** Set while a screensaver runs. The theme has no window animations, so without a fade of its own Home
+     *  cut in hard when the screensaver ended; onStart dissolves it in instead. */
+    private boolean dreamed;
+    private final BroadcastReceiver dreamReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            dreamed = true;
         }
     };
     // Right after boot the clock is often wrong until network time arrives; don't wait a minute to catch up.
@@ -387,6 +406,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
         ambientGlow = cfg.ambientGlow;
+        inputsConnectedOnly = cfg.inputsConnectedOnly;
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
@@ -574,11 +594,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
+        // inputs_single_direct: the pill opens one input, so a long press brings back the whole menu.
+        btnInputs.setOnLongClickListener(v -> {
+            if (!inputsSingleDirect) return false;
+            showInputs(false, true);
+            return true;
+        });
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
+        if (cfg.bluetoothPill) {
+            bluetoothPill = new BluetoothPill(this, btnWifi);
+            btnWifi.setOnClickListener(v -> open(bluetoothPill.settings()));
+        }
         launcherSettingsButton = cfg.launcherSettingsButton;
         if (launcherSettingsButton) {
             ((TextView) btnSettings).setText(R.string.launcher_settings);
@@ -594,6 +624,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
         if (!cfg.showNetworkPill) btnWifi.setVisibility(View.GONE);
         showInputsPill = cfg.showInputsPill;
+        inputsSingleDirect = cfg.inputsSingleDirect;
         btnLibraryTop = findViewById(R.id.btnLibraryTop);
         btnLibraryTop.setOnClickListener(v -> {
             onLibraryRequested();
@@ -680,6 +711,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else {
             registerReceiver(packageReceiver, packageFilter);
         }
+        IntentFilter dreamFilter = new IntentFilter(Intent.ACTION_DREAMING_STARTED);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(dreamReceiver, dreamFilter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(dreamReceiver, dreamFilter);
+        }
 
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -756,6 +793,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (openLauncherSettingsIfAsked(intent)) return;
         if (openInputsIfAsked(intent)) return;
         if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
+        // Already resting on the first dock tile, with nothing over Home: Home again starts the screensaver.
+        if (!stopped && hasWindowFocus() && atRest()) {
+            startScreensaver();
+            return;
+        }
         grid.scrollToPosition(0);
         lastFocused = 0;
         lastFocusedKey = adapter.getItemCount() > 0 ? adapter.keyAt(0) : null;
@@ -773,6 +815,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onStart();
         stopped = false;
         started = true;
+        if (dreamed) {
+            dreamed = false;
+            if (animations) {
+                root.setAlpha(0f);
+                root.animate().alpha(1f).setDuration(600)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+            }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(timeReceiver, timeFilter, Context.RECEIVER_NOT_EXPORTED);
         } else {
@@ -780,6 +830,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         updateClockVisibility();
         tileRefresh.onStart();
+        if (bluetoothPill != null) bluetoothPill.start();
     }
 
     @Override
@@ -1003,6 +1054,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onStop();
         started = false;
         unregisterReceiver(timeReceiver);
+        if (bluetoothPill != null) bluetoothPill.stop();
         handler.removeCallbacks(clockCheck);
         stopped = true;
         tileRefresh.onStop();
@@ -1045,6 +1097,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(packageReceiver);
+        unregisterReceiver(dreamReceiver);
         wallpaperPlayer.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -1385,9 +1438,35 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
     }
 
+    /** Home screen: Back goes to the first dock tile, like Home does; pressed there, it starts the screensaver. */
     @Override
     public void onBackPressed() {
-        // Home screen: Back goes nowhere.
+        if (atRest()) {
+            startScreensaver();
+            return;
+        }
+        grid.scrollToPosition(0);
+        lastFocused = 0;
+        lastFocusedKey = adapter.getItemCount() > 0 ? adapter.keyAt(0) : null;
+        grid.post(() -> focusTile(0));
+    }
+
+    /** Focus is on the first dock tile, the position Home rests in. */
+    private boolean atRest() {
+        View focused = getCurrentFocus();
+        View item = focused == null ? null : grid.findContainingItemView(focused);
+        return item != null && grid.getChildAdapterPosition(item) == 0;
+    }
+
+    /** The screensaver chosen in the TV's settings, started the way Settings' "Start now" does. */
+    private void startScreensaver() {
+        try {
+            startActivity(new Intent(Intent.ACTION_MAIN)
+                    .setComponent(new ComponentName("com.android.systemui", "com.android.systemui.Somnambulator"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (ActivityNotFoundException | SecurityException e) {
+            // No SystemUI starter on this firmware: stay on Home.
+        }
     }
 
     // ---- glass highlight -------------------------------------------------------------------------
@@ -2283,6 +2362,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
     private void updateWifiLabel() {
+        if (bluetoothPill != null) return;
         String text = getString(R.string.wifi);
         boolean vpn = false, online = false;
         int icon = R.drawable.ic_wifi;
@@ -2470,7 +2550,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
+        if (inputsSingleDirect && any && !iconOnlyButtons && !festive) {
+            // The input the pill stands for names it; showInputs() opens it directly.
+            View only = showInputs(true, false);
+            TextView pill = (TextView) btnInputs;
+            if (only != null) {
+                // "Apple TV · HDMI 1" becomes "Apple TV": the device's name, or the port's when it has none.
+                String title = ((TextView) only.findViewById(R.id.title)).getText().toString();
+                int dot = title.indexOf(" \u00B7 ");
+                pill.setText(dot > 0 ? title.substring(0, dot) : title);
+                pill.setCompoundDrawablesRelativeWithIntrinsicBounds((Integer) only.getTag(), 0, 0, 0);
+            } else {
+                pill.setText(R.string.inputs);
+                pill.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_input, 0, 0, 0);
+            }
+        }
     }
+
+    /** inputs_single_direct (config.xml). */
+    private boolean inputsSingleDirect;
 
     /** boot_to_live_tv: the first time Home comes up after the TV starts, open the Live TV app instead. Once per
      *  boot, keyed on Settings.Global.BOOT_COUNT, so a later Home press stays on Home. */
@@ -2582,14 +2680,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         open(new Intent(inputAction).setDataAndType(uri, "vnd.android.cursor.item/channel"));
     }
 
-    /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
     private void showInputs() {
+        showInputs(false, false);
+    }
+
+    /**
+     * Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV.
+     * inputs_single_direct picks one row for the pill (direct()): with probe nothing is shown and that row is
+     * returned, or null; otherwise the row is opened instead of the menu, unless full asks for the menu.
+     */
+    private View showInputs(boolean probe, boolean full) {
         // A configured source panel and no Live TV row to offer next to it: the panel is the whole menu.
         // The BYINTEK U4 needs this, as its TvInputManager lists three HDMI ports and an AV input it doesn't have.
         List<CoocaaSources.Source> coocaa = coocaaSources ? CoocaaSources.list(this) : Collections.emptyList();
         if (coocaa.isEmpty() && !sourcePanelService.isEmpty() && liveTvIntent() == null) {
-            openSourcePanel();
-            return;
+            if (!probe) openSourcePanel();
+            return null;
         }
         // top_menu: the pill is gone, so the list hangs under the gear, growing inward from the right.
         // Read the switch, not the pill: show_inputs_pill=false hides the pill too, and there the list
@@ -2601,7 +2707,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // Compact: as wide as the Inputs pill (a touch wider so "HDMI 1" fits), hanging right below it.
         int width = Math.max(anchor.getWidth(), (int) (150 * density));
-        final PopupWindow popup = glassPopup(panel, width);
+        final PopupWindow popup = probe ? new PopupWindow(this) : glassPopup(panel, width);
 
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         boolean sawNonHdmi = false;
@@ -2669,6 +2775,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (Integer.valueOf(-1).equals(mappedSource(info.getId()))) continue;
                 // A CEC device's row is added with its port, below.
                 if (info.getParentId() != null && inputIds.contains(info.getParentId())) continue;
+                if (inputsConnectedOnly && !connected(tim, info, cecDevices.get(info.getId()), hdmiStateBogus)) continue;
                 CharSequence l = info.loadLabel(this);
                 String label = l == null ? info.getId() : l.toString();
                 boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
@@ -2741,9 +2848,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             final Intent liveTvIntent = liveTv;
             addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, () -> open(liveTvIntent));
         }
+        // AirPlay last, after every input: TCL's receiver opens its AirPlay screen on a broadcast, not an activity.
+        final Intent airplay = new Intent("Show.Home.AirplayAPK")
+                .setComponent(new ComponentName("com.tcl.airplay2", "com.mediatek.partner.airplay.BootupReceiver"));
+        if (!getPackageManager().queryBroadcastReceivers(airplay, 0).isEmpty()) {
+            if (rows.getChildCount() > 0) addSeparator(rows);
+            addInputRow(rows, popup, R.drawable.ic_airplay, getString(R.string.airplay), -1, () -> sendBroadcast(airplay));
+        }
+        View only = direct(rows);
+        if (probe) return only;
+        if (only != null && inputsSingleDirect && !full) {
+            popup.dismiss();
+            only.performClick();
+            return null;
+        }
         if (rows.getChildCount() == 0) {
             Toast.makeText(this, R.string.no_inputs, Toast.LENGTH_SHORT).show();
-            return;
+            return null;
         }
 
         // Fit the widest row: TVs that report a status on every port (Sony) would otherwise squeeze the names out.
@@ -2753,6 +2874,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int alignment = getResources().getBoolean(R.bool.rtl_menu_bar) != underGear ? Gravity.END : Gravity.START;
         dropIn(popup, panel, anchor, alignment);
         rows.getChildAt(0).requestFocus();
+        return null;
+    }
+
+    /**
+     * The row the Inputs pill opens directly: the one HDMI row when there is exactly one (AirPlay and the rest
+     * wait in the long-press menu), else the menu's only row, else null for the menu (two HDMI inputs, or
+     * several rows and no HDMI).
+     */
+    private static View direct(LinearLayout rows) {
+        View hdmi = null, any = null;
+        int hdmis = 0, rowCount = 0;
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            View row = rows.getChildAt(i);
+            if (row.getTag() == null) continue;   // a separator
+            rowCount++;
+            any = row;
+            if (Integer.valueOf(R.drawable.ic_input).equals(row.getTag())) {
+                hdmis++;
+                hdmi = row;
+            }
+        }
+        if (hdmis > 0) return hdmis == 1 ? hdmi : null;
+        return rowCount == 1 ? any : null;
+    }
+
+    /** An HDMI port the TV reports as connected, itself or through a CEC device on it. AV jacks cannot tell. */
+    private static boolean connected(TvInputManager tim, TvInputInfo port, List<TvInputInfo> devices, boolean bogus) {
+        if (port.getType() != TvInputInfo.TYPE_HDMI) return false;
+        if (bogus) return true;   // every port says connected: the TV cannot tell, so hide nothing
+        if (tim.getInputState(port.getId()) == TvInputManager.INPUT_STATE_CONNECTED) return true;
+        if (devices != null) {
+            for (TvInputInfo device : devices) {
+                if (tim.getInputState(device.getId()) == TvInputManager.INPUT_STATE_CONNECTED) return true;
+            }
+        }
+        return false;
     }
 
     private PopupWindow glassPopup(View panel, int width) {
@@ -2790,6 +2947,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void addInputRow(LinearLayout rows, PopupWindow popup, int iconRes, String title, int state, Runnable action) {
         View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        row.setTag(iconRes);   // marks a row (separators have none); inputs_single_direct puts the icon on the pill
         ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
         ((TextView) row.findViewById(R.id.title)).setText(title);
         TextView status = row.findViewById(R.id.status);
