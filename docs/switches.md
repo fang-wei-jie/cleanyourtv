@@ -29,3 +29,6 @@ the rules. Keys from before this rule are on its wanted list; a screenshot for o
 | `settings_key_panel` | <img src="quick-settings-panel.jpg" width="320" alt="settings_key_panel on a TV"> |
 | `home_idle_clock_minutes` | <img src="clock-screensaver.png" width="320" alt="home_idle_clock_minutes on a TV"> |
 | `gamepad_passthrough` | <img src="switches/gamepad_passthrough.jpg" width="320" alt="gamepad_passthrough on a TV"> |
+| `bluetooth_pill` | <img src="switches/bluetooth_pill.jpg" width="320" alt="bluetooth_pill on a TV"> |
+| `inputs_connected_only` | <img src="switches/inputs_connected_only.jpg" width="320" alt="inputs_connected_only on a TV"> |
+| `inputs_single_direct` | <img src="switches/inputs_single_direct.jpg" width="320" alt="inputs_single_direct on a TV"> |

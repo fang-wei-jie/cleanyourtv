@@ -56,6 +56,9 @@ A new key needs one there in the same pull request.
 | `dock_row` | bool | The dock as its own row with a band (`true`); `false` makes the dock apps the first tiles of one plain grid |
 | `reorder_button` | bool | A reorder button in the top bar (`false` by default); reordering is always in the Settings button's long-press menu |
 | `show_network_pill` | bool | The Wi-Fi/Ethernet pill in the top bar (`true` by default); `false` hides it |
+| `bluetooth_pill` | bool | The network pill shows the connected Bluetooth audio device instead (its name from TV Settings, a glyph for earbuds or headphones), "Bluetooth" when none is connected and a crossed-out mark when Bluetooth is off; needs `BLUETOOTH_CONNECT` granted over adb (`false` by default) |
+| `inputs_connected_only` | bool | The Inputs menu lists only the inputs the TV reports as connected; Live TV and AirPlay stay (`false` by default) |
+| `inputs_single_direct` | bool | The Inputs pill becomes the only active HDMI input (the device's name, else the port's), or AirPlay when nothing else is there, and opens it directly; two or more HDMI inputs keep "Inputs" and the menu, and a long press always opens the full menu (`false` by default) |
 | `show_inputs_pill` | bool | The Inputs pill in the top bar, shown when the TV has inputs (`true` by default); `false` hides it, and with `top_menu` it also leaves Inputs out of the gear's menu (streamers with no HDMI input, such as the Chromecast with Google TV); what the remote's Input button does is unchanged |
 | `icon_only_buttons` | bool | Wi-Fi and Settings as round icon buttons; Inputs keeps its label (`false` by default) |
 | `icon_only_inputs` | bool | The Inputs pill as a round icon button too, its label kept as the TalkBack description (`false` by default). Works with or without `icon_only_buttons` |

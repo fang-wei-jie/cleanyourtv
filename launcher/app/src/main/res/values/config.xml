@@ -231,6 +231,11 @@
     <!-- The Wi-Fi/Ethernet pill in the top bar. false hides it (on Android 14 with Location off it can
          only say "Wi-Fi", not the network name). Can also be set with "show_network_pill" in a theme. -->
     <bool name="show_network_pill">true</bool>
+    <!-- The network pill shows the connected Bluetooth audio device instead: its name, a glyph for earbuds or
+         headphones and a green dot, or a plain Bluetooth pill when none is connected. It opens Remotes &amp;
+         Accessories. Needs `pm grant com.gathin.tvhome android.permission.BLUETOOTH_CONNECT` on Android 12+.
+         Can also be set with "bluetooth_pill" in a theme. -->
+    <bool name="bluetooth_pill">true</bool>   <!-- on in this copy for the 55T7B -->
     <!-- The Inputs pill in the top bar, shown when the TV has inputs to list. false hides it for good; what the
          remote's Input button does is unchanged. Can also be set with "show_inputs_pill" in a theme. -->
     <bool name="show_inputs_pill">true</bool>
@@ -255,6 +260,16 @@
          app_library) and App info. false keeps the old behaviour: holding OK opens the app's App info page.
          Can also be set with "tile_menu": true in a theme's config.json. -->
     <bool name="tile_menu">false</bool>
+    <!-- The Inputs menu lists only the inputs the TV reports as connected, so empty ports and AV (which cannot
+         report) are left out; Live TV and AirPlay stay. On TVs whose HDMI ports never say "connected" this lists
+         only HDMI-CEC devices. Can also be set with "inputs_connected_only": true in a theme's config.json. -->
+    <bool name="inputs_connected_only">true</bool>
+
+    <!-- The Inputs pill becomes one input and opens it directly: the only HDMI input (the device's name, else the
+         port's), or AirPlay or another lone row when no HDMI is there. Two or more HDMI inputs keep "Inputs" and its
+         menu; a long press always opens the full menu. Not with icon_only_buttons or a festive skin, which keep their
+         own pill. Can also be set with "inputs_single_direct" in a theme. -->
+    <bool name="inputs_single_direct">true</bool>   <!-- on in this copy for the 55T7B -->
 
     <!-- Grid rows left visible under the dock on the home screen. 0 = dock sits at the very bottom. Tiles shrink if
          the dock, its title and this many rows would not otherwise fit the screen height. -->

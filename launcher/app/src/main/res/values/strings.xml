@@ -9,6 +9,7 @@
     <string name="standby">Standby</string>
     <string name="not_connected">No device</string>
     <string name="live_tv">Live TV</string>
+    <string name="airplay">AirPlay</string>
     <string name="no_inputs">No inputs found</string>
     <string name="good_morning">Good morning</string>
     <string name="good_afternoon">Good afternoon</string>
@@ -45,7 +46,7 @@
     <string name="vpn_off">VPN off</string>
     <string name="home_settings">Choose default home</string>
     <string name="home_settings_help">Select your original home to stop using CleanYourTV as Home, or CleanYourTV to switch back. The original launcher must be enabled and your TV must provide a home picker; use the restore script first if it was disabled.</string>
-    <string name="launcher_settings">Launcher settings</string>
+    <string name="launcher_settings">Launcher Settings</string>
     <string name="columns_label">Apps per row</string>
     <string name="rows_below_dock_label">Rows below dock</string>
     <string name="dock_opacity_label">Dock band opacity</string>
@@ -60,9 +61,16 @@
     <string name="advanced_effects_warning">Adds a lifted tile, icon zoom and smooth colour transitions. May increase memory use; the actual difference depends on your TV.</string>
     <string name="follow_theme">Follow theme (reset on-TV choices)</string>
     <string name="follow_theme_hint">Uses the current theme or built-in layout and motion settings. Pushing or resetting a theme also clears your on-TV choices.</string>
-    <string name="tv_settings">TV system settings</string>
+    <string name="tv_settings">TV Settings</string>
+    <string name="quick_panel_label">Quick panel</string>
+    <string name="quick_panel_hint">Rows the remote\'s Settings button shows on Home. OK turns a row on or off; hold OK to move it. Launcher Settings is always there, last.</string>
+    <string name="move_up">Move up</string>
+    <string name="move_down">Move down</string>
+    <string name="quick_row_state">%1$s: %2$s</string>
     <string name="quick_picture">Display</string>
     <string name="quick_network">Network</string>
+    <string name="quick_bluetooth">Bluetooth</string>
+    <string name="bluetooth_off">Bluetooth off</string>
     <string name="quick_apps">Apps</string>
     <string name="quick_apps_hint">Re-enable</string>
     <string name="on">On</string>

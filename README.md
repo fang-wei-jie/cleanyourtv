@@ -546,8 +546,10 @@ and a wallpaper.
     transitions; they may use more memory) once animations are on.
   - **Follow theme (reset on-TV choices)**, which clears every choice above. Pushing or resetting a theme
     clears them too.
-  - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings
+  - **Choose default home** opens Android's home picker, and **TV Settings** the TV's own settings
     page.
+  - **Quick panel**: one row per entry of the panel the remote's Settings button opens (`settings_key_panel`).
+    OK switches an entry on or off, and holding OK moves it up or down. Launcher Settings always stays on.
 - **Change the default home:** Launcher settings and the optional Default-home tile
   (`show_home_settings_shortcut`) open Android's home picker. Choose the original launcher to stop using
   CleanYourTV as Home, or CleanYourTV to return. The original launcher must be enabled; if the install
