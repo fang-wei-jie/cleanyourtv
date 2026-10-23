@@ -1128,7 +1128,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (int code : settingsKeycodes) {
             if (event.getKeyCode() != code) continue;
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
-                open(settingsKeyPanel ? quickPanel() : systemIntent(Settings.ACTION_SETTINGS));
+                if (settingsKeyPanel) {
+                    // As if Settings had been reached and held: focus it first, so the panel closes back onto it.
+                    View settings = findViewById(R.id.btnSettings);
+                    if (settings.getVisibility() == View.VISIBLE) settings.requestFocus();
+                    open(quickPanel());
+                } else {
+                    open(systemIntent(Settings.ACTION_SETTINGS));
+                }
             }
             return true;
         }
