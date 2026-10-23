@@ -60,7 +60,7 @@ public final class LauncherSettingsActivity extends Activity {
                 if (columns == value) return;
                 columns = value;
                 choices.edit().putInt("columns", value).apply();
-                setResult(RESULT_OK);
+                changed();
                 refresh();
             });
         }
@@ -72,7 +72,7 @@ public final class LauncherSettingsActivity extends Activity {
                 if (rowsBelowDock == value) return;
                 rowsBelowDock = value;
                 choices.edit().putInt(Config.ROWS_BELOW_DOCK_KEY, value).apply();
-                setResult(RESULT_OK);
+                changed();
                 refresh();
             });
         }
@@ -84,7 +84,7 @@ public final class LauncherSettingsActivity extends Activity {
                 if (dockOpacity == value) return;
                 dockOpacity = value;
                 choices.edit().putInt(Config.DOCK_OPACITY_KEY, value).apply();
-                setResult(RESULT_OK);
+                changed();
                 refresh();
             });
         }
@@ -103,7 +103,7 @@ public final class LauncherSettingsActivity extends Activity {
             if (!animations) advancedEffects = false;
             choices.edit().putBoolean("animations", animations)
                     .putBoolean("advanced_effects", advancedEffects).apply();
-            setResult(RESULT_OK);
+            changed();
             refresh();
         });
         advancedChoice = findViewById(R.id.advancedChoice);
@@ -131,7 +131,7 @@ public final class LauncherSettingsActivity extends Activity {
             dockOpacity = current.dockOpacity;
             animations = current.animations;
             advancedEffects = current.animations && current.advancedEffects;
-            setResult(RESULT_OK);
+            changed();
             refresh();
         });
         findViewById(R.id.defaultHomeChoice).setOnClickListener(v -> {
@@ -191,13 +191,13 @@ public final class LauncherSettingsActivity extends Activity {
                         choices.edit().putString(Config.WALLPAPER_CHOICE_KEY,
                                 images.get(which).getName()).apply();
                     }
-                    setResult(RESULT_OK);
+                    changed();
                     Toast.makeText(this, R.string.wallpaper_applied, Toast.LENGTH_SHORT).show();
                     refresh();
                 })
                 .setNeutralButton(R.string.wallpaper_theme_default, (dialog, which) -> {
                     choices.edit().remove(Config.WALLPAPER_CHOICE_KEY).apply();
-                    setResult(RESULT_OK);
+                    changed();
                     refresh();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
@@ -231,10 +231,20 @@ public final class LauncherSettingsActivity extends Activity {
         return -1;
     }
 
+    /**
+     * A choice was saved. Home rebuilds when it next resumes because the change count moved, whether these
+     * settings are left with Back or with the remote's Home button (which cancels the activity result).
+     */
+    private void changed() {
+        setResult(RESULT_OK);
+        choices.edit().putLong(Config.SETTINGS_REVISION_KEY,
+                choices.getLong(Config.SETTINGS_REVISION_KEY, 0) + 1).apply();
+    }
+
     private void setAdvanced(boolean enabled) {
         advancedEffects = enabled;
         choices.edit().putBoolean("advanced_effects", enabled).apply();
-        setResult(RESULT_OK);
+        changed();
         refresh();
     }
 
