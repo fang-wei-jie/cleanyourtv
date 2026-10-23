@@ -173,6 +173,10 @@
             <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
             <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
             <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
+            <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
+            <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
+            <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
+            <TextView style="@style/SettingsRow" android:layout_marginTop="10dp" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

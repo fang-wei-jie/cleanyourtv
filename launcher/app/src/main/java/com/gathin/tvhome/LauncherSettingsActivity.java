@@ -147,6 +147,7 @@ public final class LauncherSettingsActivity extends Activity {
             quickChoices[i] = (TextView) quickRows.getChildAt(i);
             quickChoices[i].setOnClickListener(v -> {
                 int row = QuickSettingsActivity.order(choices)[position];
+                if (row == QuickSettingsActivity.LAUNCHER_SETTINGS_ROW) return;   // the way back here stays on
                 choices.edit().putBoolean(QuickSettingsActivity.ROW_KEYS[row],
                         !QuickSettingsActivity.shows(choices, row)).apply();
                 refresh();
